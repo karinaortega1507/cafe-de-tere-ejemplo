@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Ejecutivo: Café de Tere</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .header {
+            background-color: #fff;
+            padding: 20px 0;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.05);
+        }
+        .kpi-card {
+            border-left: 5px solid var(--primary-color);
+            border-radius: .5rem;
+        }
+        .kpi-card.max {
+            border-left: 5px solid var(--danger-color);
+        }
+        .heatmap-cell {
+            min-width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #495057;
+            background-color: #f1f1f1;
+            border: 1px solid #dee2e6;
+            transition: background-color 0.3s ease;
+        }
+        .heatmap-cell.high { background-color: #ffcccc; } /* Rojo claro */
+        .heatmap-cell.very-high { background-color: #ff6666; color: white; } /* Rojo medio */
+        .heatmap-cell.max { background-color: #dc3545; color: white; font-weight: bold; } /* Rojo fuerte */
+        .topic-card {
+            min-height: 150px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="container">
+        <h1 class="text-center text-primary">☕ Dashboard Ejecutivo: Café de Tere 📈</h1>
+        <p class="text-center text-secondary">Análisis de la conversación digital y el rendimiento operativo.</p>
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="mb-5">
+        <h2 class="mb-4 text-secondary">Métricas Clave de Engagement (Twitter)</h2>
+        <div class="row" id="kpi-metrics">
+            </div>
+    </section>
+
+    <hr>
+
+    <section class="mb-5">
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow topic-card">
+                    <div class="card-body">
+                        <h5 class="card-title text-info">Análisis de Tópicos (Sentimiento)</h5>
+                        <p class="card-text">Identificación de los desafíos más urgentes basados en el volumen e impacto de la conversación.</p>
+                        <ul class="list-group list-group-flush" id="topic-list">
+                            </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="card-title text-success">Influencia en el Engagement (Correlación)</h5>
+                        <p class="card-text">Relación entre la autoridad del usuario ($ \text{Followers} $) y el *engagement* generado (Likes y Retweets).</p>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Métrica</th>
+                                    <th>Correlación vs. Favs</th>
+                                    <th>Correlación vs. RTs</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corr-table">
+                                </tbody>
+                        </table>
+                        <small class="text-muted">Una correlación cercana a 1.0 (positiva) o -1.0 (negativa) indica una fuerte relación.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <hr>
+
+    <section class="mb-5">
+        <h2 class="mb-4 text-secondary">Volumen de Conversación por Día y Hora (Heatmap)</h2>
+        <div class="card shadow">
+            <div class="card-body">
+                <p class="card-text">Visualización de las horas ($ 0 - 23 $) y días de mayor actividad en la conversación digital (basado en $\text{Retweet Count} $).</p>
+                <div class="table-responsive">
+                    <table class="table table-bordered text-center align-middle" id="heatmap-table">
+                        <thead>
+                            <tr>
+                                <th>Día/Hora</th>
+                                </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <hr>
+
+    <section class="mb-5">
+        <h2 class="mb-4 text-primary">Plan de Acción (Conclusión Ejecutiva)</h2>
+        <div class="card shadow bg-light">
+            <div class="card-body">
+                <p id="conclusion-text"></p>
+                <h6 class="mt-4 text-danger">Prioridades Tácticas:</h6>
+                <ol id="priority-list">
+                    </ol>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="text-center py-3 bg-white mt-5">
+    <p class="mb-0 text-muted">Generado con análisis de datos de redes sociales.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // ** Datos simulados para el Dashboard **
+    // En un entorno real, estos datos se cargarían desde una API o un archivo.
+    const data = {
+        "describe_matrix": {
+            "mean": { "favorite_count": 12.20, "retweet_count": 33.93, "user.followers_count": 5046.37 },
+            "max": { "favorite_count": 2733.0, "retweet_count": 28090.0, "user.followers_count": 1997889.0 }
+        },
+        "corr_matrix": {
+            "user.followers_count": { "favorite_count": 0.374, "retweet_count": 0.128 },
+            "user.friends_count": { "favorite_count": 0.164, "retweet_count": 0.054 }
+        },
+        "heatmap": {
+            "Monday": { "17.0": 177.0, "22.0": 2734.0, "16.0": 3.0, /* ... */ },
+            "Tuesday": { "18.0": 1012.0, "22.0": 1555.0, "23.0": 1331.0, /* ... */ },
+            "Wednesday": { "1.0": 906.0, "2.0": 1789.0, "3.0": 895.0, /* ... */ },
+            "Thursday": { "0.0": 37.0, "1.0": 104.0, "23.0": 100.0, /* ... */ },
+            "Friday": { "0.0": 5.0, "14.0": 8.0, /* ... */ },
+            "Saturday": { "0.0": 5.0, "10.0": 11.0, "17.0": 8.0, /* ... */ },
+            "Sunday": { "13.0": 7.0, "18.0": 1.0, /* ... */ }
+        },
+        "topics": {
+            "conclusion": "La marca es icónica y altamente conversada, pero opera en un terreno polarizado donde el precio/valor, la consistencia del sabor, los medios de pago y la experiencia operativa generan fricción. Prioridades tácticas: 1) habilitar pagos con tarjeta/QR, 2) recalibrar y estandarizar recetas (en especial tigrillo/bolón) con control de temperatura y salado, 3) ajustar la propuesta de valor (porciones, combos y políticas de delivery/ají), 4) fortalecer el discurso de inclusión y emprendimiento con respuestas empáticas y 5) capitalizar la viralidad con activaciones y ofertas por canal.",
+            "topics": [
+                { "title": "Medios de pago", "challenge": "Habilitar POS, QR y billeteras; comunicar razones y fechas de implementaci\u00f3n; incentivar pagos digitales." },
+                { "title": "Calidad y consistencia del producto", "challenge": "Refinar y estandarizar recetas y procesos (temperatura, salado, grasas), auditor\u00edas sensoriales por local, KPIs de calidad." },
+                { "title": "Precio y percepción de valor", "challenge": "Definir estrategia de precios y porciones (combos, tama\u00f1os, \u201cbol\u00f3n popular\u201d en franjas), hacer transparente la propuesta de valor y costos." }
+            ]
+        }
+    };
+
+    // ** Llenar Métricas Clave (KPIs) **
+    function renderKPIs() {
+        const kpiMetrics = document.getElementById('kpi-metrics');
+        const metrics = [
+            { label: 'Likes Promedio', value: data.describe_matrix.mean.favorite_count, unit: '', color: 'var(--primary-color)' },
+            { label: 'Retweets Promedio', value: data.describe_matrix.mean.retweet_count, unit: '', color: 'var(--primary-color)' },
+            { label: 'Máx. Likes (Viralidad)', value: data.describe_matrix.max.favorite_count, unit: '', color: 'var(--danger-color)', isMax: true },
+            { label: 'Máx. Retweets (Viralidad)', value: data.describe_matrix.max.retweet_count, unit: '', color: 'var(--danger-color)', isMax: true }
+        ];
+
+        metrics.forEach(m => {
+            const card = document.createElement('div');
+            card.className = 'col-md-3 mb-3';
+            card.innerHTML = `
+                <div class="card shadow p-3 ${m.isMax ? 'kpi-card max' : 'kpi-card'}" style="border-left-color: ${m.color};">
+                    <div class="card-body p-0">
+                        <h6 class="card-title text-uppercase text-muted">${m.label}</h6>
+                        <h3 class="card-text">${Math.round(m.value).toLocaleString()}${m.unit}</h3>
+                    </div>
+                </div>
+            `;
+            kpiMetrics.appendChild(card);
+        });
+    }
+
+    // ** Llenar Tópicos Principales **
+    function renderTopics() {
+        const topicList = document.getElementById('topic-list');
+        // Mostrar los 3 tópicos más relevantes (Medios de pago, Calidad, Precio)
+        data.topics.topics.slice(0, 3).forEach(t => {
+            const listItem = document.createElement('li');
+            listItem.className = 'list-group-item d-flex justify-content-between align-items-start';
+            listItem.innerHTML = `
+                <div class="ms-2 me-auto">
+                    <div class="fw-bold">${t.title}</div>
+                    <small class="text-danger">Desafío: ${t.challenge.split(';')[0]}</small>
+                </div>
+            `;
+            topicList.appendChild(listItem);
+        });
+    }
+
+    // ** Llenar Tabla de Correlación **
+    function renderCorrelation() {
+        const corrTable = document.getElementById('corr-table');
+        const corrData = [
+            { metric: 'User Followers', fav: data.corr_matrix["user.followers_count"]["favorite_count"], rt: data.corr_matrix["user.followers_count"]["retweet_count"] },
+            { metric: 'User Friends', fav: data.corr_matrix["user.friends_count"]["favorite_count"], rt: data.corr_matrix["user.friends_count"]["retweet_count"] }
+        ];
+
+        corrData.forEach(c => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${c.metric}</td>
+                <td class="${c.fav > 0.3 ? 'text-success fw-bold' : 'text-muted'}">${c.fav.toFixed(3)}</td>
+                <td class="${c.rt > 0.3 ? 'text-success fw-bold' : 'text-muted'}">${c.rt.toFixed(3)}</td>
+            `;
+            corrTable.appendChild(row);
+        });
+    }
+
+    // ** Llenar Heatmap **
+    function renderHeatmap() {
+        const heatmapTable = document.getElementById('heatmap-table');
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const hours = Array.from({ length: 24 }, (_, i) => i);
+        let maxRt = 0;
+
+        // 1. Calcular el valor máximo en todo el heatmap (para la escala de color)
+        days.forEach(day => {
+            Object.values(data.heatmap[day]).forEach(count => {
+                if (count > maxRt) {
+                    maxRt = count;
+                }
+            });
+        });
+
+        // 2. Llenar encabezado con horas
+        const headerRow = heatmapTable.querySelector('thead tr');
+        hours.forEach(hour => {
+            const th = document.createElement('th');
+            th.textContent = hour;
+            headerRow.appendChild(th);
+        });
+
+        // 3. Llenar cuerpo de la tabla (días y valores)
+        days.forEach(day => {
+            const row = document.createElement('tr');
+            const dayCell = document.createElement('td');
+            dayCell.textContent = day;
+            dayCell.className = 'fw-bold';
+            row.appendChild(dayCell);
+
+            hours.forEach(hour => {
+                const count = data.heatmap[day][`${hour}.0`] || 0; // Usar 0 si es -1.0
+                const cell = document.createElement('td');
+                cell.classList.add('heatmap-cell');
+                cell.textContent = count > 0 ? count.toLocaleString() : '';
+
+                // Definir clases de color según la intensidad
+                if (count > 0.75 * maxRt) {
+                    cell.classList.add('max');
+                } else if (count > 0.3 * maxRt) {
+                    cell.classList.add('very-high');
+                } else if (count > 0.05 * maxRt) {
+                    cell.classList.add('high');
+                } else if (count > 0) {
+                    cell.classList.add('low');
+                }
+
+                row.appendChild(cell);
+            });
+            heatmapTable.querySelector('tbody').appendChild(row);
+        });
+    }
+
+    // ** Llenar Conclusión Ejecutiva **
+    function renderConclusion() {
+        const conclusionText = document.getElementById('conclusion-text');
+        const priorityList = document.getElementById('priority-list');
+
+        // Llenar el texto principal de la conclusión
+        conclusionText.innerHTML = data.topics.conclusion.split('. Prioridades tácticas:')[0] + '.';
+
+        // Llenar la lista de prioridades tácticas
+        const priorities = data.topics.conclusion.split('. Prioridades tácticas:')[1].trim().split(', ');
+
+        priorities.forEach(p => {
+            const listItem = document.createElement('li');
+            listItem.textContent = p.replace(/\d\)/, '').trim().replace(/\.$/, ''); // Limpiar numeración y punto final
+            priorityList.appendChild(listItem);
+        });
+    }
+
+
+    // ** Inicializar Dashboard **
+    document.addEventListener('DOMContentLoaded', () => {
+        renderKPIs();
+        renderTopics();
+        renderCorrelation();
+        renderHeatmap();
+        renderConclusion();
+    });
+</script>
+</body>
+</html>
